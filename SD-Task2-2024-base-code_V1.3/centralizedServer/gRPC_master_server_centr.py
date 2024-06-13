@@ -1,6 +1,7 @@
 import json
 import string
 import threading
+import asyncio
 import time
 from concurrent import futures
 import sys
@@ -18,10 +19,9 @@ import store_pb2_grpc
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../eval')
 
 #Class were we define our Master node which implements the KeyValueStoreServicer functions
-class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
-
+class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):   
     def __init__(self):
-        self.keyValueStore = Dict[str, str] = {} # Dictionary to store key value pairs
+        self.keyValueStore: Dict[string, string] = {} # Dictionary to store key value pairs
         self.slowDown = False # Boolean to check if the server is in slow mode
         self.slowDownSecs = 0 # Time to slow comunication beetwen servers (nodes)
         self.semaphore = Semaphore()
@@ -41,13 +41,11 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
         # Here we save the three stubs from each node
         self.stubs = []
         for port in ports:
-            channel = grpc.insecure_channel(f"localhost:{port}") #Open a new channel for each node
-            stub = store_pb2_grpc.KeyValueStoreStub(channel) # Save its stub 
-            self.stubs.append(store_pb2_grpc.KeyValueStoreStub(stub)) # Add stub to stub list
+            channel = grpc.insecure_channel(f"localhost:{port}") # Open a new channel for each node
+            self.stubs.append(store_pb2_grpc.KeyValueStoreStub(channel))
 
     # This funtion returns corresponding value to a key if exists, if not return None
     def get(self, request: store_pb2.GetRequest, context: grpc.aio.ServicerContext) -> store_pb2.GetResponse:
-
         self.semaphore.acquire() 
         value = self.keyValueStore.get(request.key) # Obtain value from corresponding key
         self.semaphore.release()
@@ -71,12 +69,12 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
 
         node_resp = [] # List to store responses from nodes in order to know if they can modify the key value
         for stub in self.stubs:
-            node_resp.append(stub.commit(commit_req)) # Send commit request to the slaves nodes and get their responses
+            node_resp.append(stub.canCommit(commit_req)) # Send commit request to the slaves nodes and get their responses
         
         canCommit = True # Boolean to check if all nodes can modify the key value
         # If any node cannot modify the key value, save a False value in canCommit
         for resp in node_resp:
-            if not resp.canCommit:
+            if not resp:
                 canCommit = False
         
         self.semaphore.acquire()
@@ -92,11 +90,11 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
                 all_Correct = False
         if not all_Correct:
             print("Error in one of the nodes, key value not stored correctly")
-            put_value = store_pb2.PutResponse(correct=False) # If any node has stored the key value incorrectly, set correct to False
+            put_value = store_pb2.PutResponse(success=False) # If any node has stored the key value incorrectly, set correct to False
         else:
             # Here we knopw that all slaves nodes have modified value propperly, so we can modify the value in the master node
             self.keyValueStore[request.key] = request.value
-            put_value = store_pb2.PutResponse(correct=True) # Set correct to True 
+            put_value = store_pb2.PutResponse(success=True) # Set correct to True 
         
         self.semaphore.release()
 
@@ -111,7 +109,7 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
         return put_value
 
     # Here we define can_commit function in order to check if a key value can be modified by the master node if all slaves nodes agree
-    def can_commit(self, request: store_pb2, context: grpc.aio.ServicerContext) -> store_pb2.CommitResponse:
+    def canCommit(self, request: store_pb2, context: grpc.aio.ServicerContext) -> store_pb2.CommitResponse:
         self.semaphore.acquire()
         if request.key in self.keyValueStore: 
             resp = store_pb2.CommitResponse(canCommit=True)
@@ -121,7 +119,7 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
         return resp
 
     # This function add delay to the communication between nodes with the value seconds in request
-    def slow_down(self, request: store_pb2.SlowDownRequest, context: grpc.aio.ServicerContext) -> store_pb2.SlowDownResponse:
+    def slowDown(self, request: store_pb2.SlowDownRequest, context: grpc.aio.ServicerContext) -> store_pb2.SlowDownResponse:
         self.slowDown = True # Set slowDown to True
         self.slowDownSecs = request.seconds # Set the time to slow down the communication
         return store_pb2.SlowDownResponse(accepted=True)
@@ -143,6 +141,6 @@ def master_node():
 
 def main():
     master_node() # Call master_node function
-
+    
 if __name__ == '__main__':
     main() # Call main function

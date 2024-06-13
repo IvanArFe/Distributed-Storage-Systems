@@ -54,6 +54,30 @@ class RestoreResponse(_message.Message):
     success: bool
     def __init__(self, success: bool = ...) -> None: ...
 
+class CommitResponse(_message.Message):
+    __slots__ = ("success",)
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    success: bool
+    def __init__(self, success: bool = ...) -> None: ...
+
+class CommitRequest(_message.Message):
+    __slots__ = ("key",)
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    def __init__(self, key: _Optional[str] = ...) -> None: ...
+
+class VoteRequest(_message.Message):
+    __slots__ = ("key",)
+    KEY_FIELD_NUMBER: _ClassVar[int]
+    key: str
+    def __init__(self, key: _Optional[str] = ...) -> None: ...
+
+class VoteResponse(_message.Message):
+    __slots__ = ("weight",)
+    WEIGHT_FIELD_NUMBER: _ClassVar[int]
+    weight: int
+    def __init__(self, weight: _Optional[int] = ...) -> None: ...
+
 class Empty(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...

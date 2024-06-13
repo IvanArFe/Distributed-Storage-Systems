@@ -1,4 +1,4 @@
-import gRPC_master_server_centr, gRPC_slave_server_centr
+from centralizedServer import gRPC_master_server_centr, gRPC_slave_server_centr
 import threading
 
 # Script to launch centralised master server and slaves servers with threads.
