@@ -23,7 +23,7 @@ class ServerDescServicer(store_pb2_grpc.KeyValueStoreServicer):
             with open("backup_decen.json", "r") as f:
                 self.keyValueStore = json.load(f)
 
-        self.slowDown = False # Boolean to check if the server is in slow mode
+        self.slowDownActive = False # Boolean to check if the server is in slow mode
         self.slowDownSecs = 0 # Time to slow comunication beetwen servers (nodes)
         self.semaphore = Semaphore()
         self.port = port
@@ -107,7 +107,7 @@ class ServerDescServicer(store_pb2_grpc.KeyValueStoreServicer):
         else:
             put_value = store_pb2.PutResponse(success=False)
 
-        if self.slowDown:
+        if self.slowDownActive == True:
             time.sleep(self.slowDownSecs) # Add delay to slow down the communication
         
         return put_value
@@ -138,7 +138,7 @@ class ServerDescServicer(store_pb2_grpc.KeyValueStoreServicer):
         else:
             response = store_pb2.GetResponse(value=get_value, found=True)
         
-        if self.slowDown:
+        if self.slowDownActive == True:
             time.sleep(self.slowDownSecs) # Add delay to slow down the communication
         
         return response
@@ -149,13 +149,13 @@ class ServerDescServicer(store_pb2_grpc.KeyValueStoreServicer):
     
     # This function add delay to the communication between nodes with the value seconds in request
     def slowDown(self, request: store_pb2.SlowDownRequest, context: grpc.aio.ServicerContext) -> store_pb2.SlowDownResponse:
-        self.slowDown = True
+        self.slowDownActive = True
         self.slowDownSecs = request.seconds # Delay request.seconds the communication
         return store_pb2.SlowDownResponse(success=True)
     
     # This function restores the server to its initial state, without delay
     def restore(self, request: store_pb2.RestoreRequest, context: grpc.aio.ServicerContext) -> store_pb2.RestoreResponse:
-        self.slowDown = False
+        self.slowDownActive = False
         self.slowDownSecs = 0
         return store_pb2.RestoreResponse(success=True)
     

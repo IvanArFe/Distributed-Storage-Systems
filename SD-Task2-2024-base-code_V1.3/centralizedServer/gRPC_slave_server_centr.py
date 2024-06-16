@@ -22,7 +22,7 @@ class SlaveServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
             with open("backup_centr.json", "r") as f:
                 self.keyValueStore = json.load(f)
     
-        self.slowDown = False
+        self.slowDownActive = False
         self.slowDownSecs = 0
         self.semaphore = Semaphore()
 
@@ -39,7 +39,7 @@ class SlaveServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
             resp = store_pb2.GetResponse(value=value, found=True) # Else set value and found true
         
         # Add delay to communication
-        if self.slowDown:
+        if self.slowDownActive:
             time.sleep(self.slowDownSecs)
         
         return resp
@@ -53,7 +53,7 @@ class SlaveServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
 
     # This function add delay to the communication between nodes with the value seconds in request
     def slowDown(self, request: store_pb2.SlowDownRequest, context: grpc.aio.ServicerContext) -> store_pb2.SlowDownResponse:
-        self.slowDown = True # Set slowDown to True
+        self.slowDownActive = True # Set slowDown to True
         self.slowDownSecs = request.seconds # Delay request.seconds the communication
         return store_pb2.SlowDownResponse(success=True)
     
@@ -63,8 +63,8 @@ class SlaveServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
     
     # Restore to default values in order to drop delays in communication
     def restore(self, request: store_pb2.RestoreRequest, context: grpc.aio.ServicerContext) -> store_pb2.RestoreResponse:
-        self.slow_down = False # Set slowDown to False
-        self.slow_down_secs = 0 # Set the time to slow down the communication to 0
+        self.slowDownActive = False # Set slowDown to False
+        self.slowDownSecs # Set the time to slow down the communication to 0
         return store_pb2.RestoreResponse(success=True)
 
 def slave_server(port):

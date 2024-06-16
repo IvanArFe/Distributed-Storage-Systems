@@ -25,15 +25,15 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
             with open("backup_centr.json", "r") as f:
                 self.keyValueStore = json.load(f)
 
-        self.slowDown = False # Boolean to check if the server is in slow mode
+        self.slowDownActive = False # Boolean to check if the server is in slow mode
         self.slowDownSecs = 0 # Time to slow comunication beetwen servers (nodes)
         self.semaphore = Semaphore()
         self.port = 32770 # Port for the master node
 
-        # Discovery port ranges
+        # List for discovery port ranges
         ports = []
 
-        # Discovered ports (from documentation)
+        # Discovered ports (from documentation), this should be implemented with a method called portDiscovery()
         ports.append(32771)
         ports.append(32772)
 
@@ -54,7 +54,7 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
         else:
             resp = store_pb2.GetResponse(value=value, found=True) # Else set value and found true
         
-        if self.slowDown:
+        if self.slowDownActive == True:
             # Add delay to slow down the communication as requested in documentation
             time.sleep(self.slowDownSecs)
 
@@ -101,7 +101,7 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
          
         self.semaphore.release()
 
-        if self.slowDown:
+        if self.slowDownActive == True:
             # Add delay to slow down the communication as requested in documentation
             time.sleep(self.slowDownSecs)
         
@@ -119,13 +119,13 @@ class MasterServiceServicer(store_pb2_grpc.KeyValueStoreServicer):
 
     # This function add delay to the communication between nodes with the value seconds in request
     def slowDown(self, request: store_pb2.SlowDownRequest, context: grpc.aio.ServicerContext) -> store_pb2.SlowDownResponse:
-        self.slowDown = True # Set slowDown to True
+        self.slowDownActive = True # Set slowDown to True
         self.slowDownSecs = request.seconds # Set the time to slow down the communication
         return store_pb2.SlowDownResponse(success=True)
 
     # Restore to default values in order to drop delays in communication
     def restore(self, request: store_pb2.RestoreRequest, context: grpc.aio.ServicerContext) -> store_pb2.RestoreResponse:
-        self.slowDown = False # Set slowDown to False
+        self.slowDownActive = False # Set slowDown to False
         self.slowDownSecs = 0 # Set the time to slow down the communication to 0
         return store_pb2.RestoreResponse(success=True)
     
