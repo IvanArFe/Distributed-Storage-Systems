@@ -26,7 +26,7 @@ class ServerDescServicer(store_pb2_grpc.KeyValueStoreServicer):
         self.slowDownActive = False # Boolean to check if the server is in slow mode
         self.slowDownSecs = 0 # Time to slow comunication beetwen servers (nodes)
         self.semaphore = Semaphore()
-        self.port = port
+        #self.port = port
         self.weight = weight
         self.read_quo = 2 # Maximum quorum for read 
         self.write_quo = 3 # Maximum quorum for write
